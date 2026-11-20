@@ -1,6 +1,7 @@
-# Only dist/, the manifest, README, CHANGELOG and LICENSE ship.
+# Only dist/, the icon, the manifest, README, CHANGELOG and LICENSE ship.
 **
 !dist/extension.js
+!images/icon.png
 !package.json
 !README.md
 !CHANGELOG.md

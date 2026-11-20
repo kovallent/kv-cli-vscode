@@ -30,6 +30,11 @@
     "secrets",
     "data pipelines"
   ],
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#0B0F17",
+    "theme": "dark"
+  },
   "main": "./dist/extension.js",
   "activationEvents": [
     "onLanguage:python",
