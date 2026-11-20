@@ -72,7 +72,7 @@ function launch(executable: string, args: string[], env: NodeJS.ProcessEnv): Pro
 async function main(): Promise<void> {
   const executable = await downloadAndUnzipVSCode(process.env.VSCODE_TEST_VERSION ?? "stable");
   const only = process.env.KV_TEST_SUITE;
-  let failed = 0;
+  const failed: string[] = [];
   for (const suite of suites.filter((s) => !only || s.name === only)) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `kv-cli-vscode-${suite.name}-`));
     const workspace = path.join(tmp, "workspace");
@@ -133,19 +133,21 @@ async function main(): Promise<void> {
     };
     delete env.ELECTRON_RUN_AS_NODE;
 
-    console.log(`\n=== suite: ${suite.name} (${workspace})`);
+    console.log(`\n=== running suite ${suite.name} in ${workspace}`);
     const code = await launch(executable, args, env);
+    console.log(`=== suite ${suite.name}: exit ${code}`);
     if (code !== 0) {
-      console.error(`=== suite ${suite.name} failed (exit ${code})`);
-      failed++;
+      failed.push(suite.name);
     }
   }
-  if (failed > 0) {
-    process.exit(1);
-  }
+  // Last, so the cause is visible without scrolling past VS Code's startup
+  // noise. exitCode rather than exit(), so the line is flushed first.
+  console.log(failed.length > 0 ? `=== failed suites: ${failed.join(", ")}` : "=== all suites passed");
+  process.exitCode = failed.length > 0 ? 1 : 0;
 }
 
 main().catch((err) => {
   console.error(err);
-  process.exit(1);
+  console.log("=== failed suites: the test runner itself failed (see the error above)");
+  process.exitCode = 1;
 });

@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import { SHOW_FILE_PROBLEMS } from "../../../src/statusBar";
-import { api, audited, dismissAll, recordedPayload } from "../helpers";
+import { api, audited, dismissAll, recordedPayload, statusReads } from "../helpers";
 
 suite("Status bar", () => {
   teardown(async () => dismissAll(await api()));
@@ -21,7 +21,9 @@ suite("Status bar", () => {
     test(`${rel}: "${expected}"`, async () => {
       const a = await api();
       await audited(a, rel);
-      assert.strictEqual(a.statusBar.text, expected);
+      // The item follows the active editor, whose change event can arrive
+      // after showTextDocument resolves: wait for it to read the expected text.
+      await statusReads(a, expected);
       assert.ok(!/compliant/i.test(a.statusBar.text ?? ""), 'a single file is never "compliant"');
       assert.ok(!/compliant/i.test(a.statusBar.tooltip ?? ""));
       const entry = recordedPayload(recording).run.files[0];
@@ -49,6 +51,6 @@ suite("Status bar", () => {
     const a = await api();
     const doc = await vscode.workspace.openTextDocument({ language: "markdown", content: "# notes" });
     await vscode.window.showTextDocument(doc);
-    assert.strictEqual(a.statusBar.text, undefined);
+    await statusReads(a, undefined);
   });
 });

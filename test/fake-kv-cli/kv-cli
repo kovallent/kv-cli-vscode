@@ -7,9 +7,12 @@
 //   KV_FAKE_LOG       append one JSON line per invocation here
 //   KV_FAKE_SCENARIO  JSON file read on every call, so a test can change the
 //                     behaviour while VS Code runs:
-//                     { "version": "0.13.0", "delayMs": 800,
+//                     { "version": "0.13.0", "holdUntil": "/tmp/x/release",
 //                       "replay": "contract-drift" }
 //                     `replay` answers every audit with that recording.
+//                     `holdUntil` makes every audit wait, before it answers,
+//                     until that file exists: the test decides when a run
+//                     ends, with no delay to race.
 "use strict";
 
 const fs = require("fs");
@@ -61,17 +64,26 @@ function finish(stdout, stderr, code, writes) {
     log({ event: "exit", code });
     process.exitCode = code;
   };
-  const delay = args[0] === "--version" ? 0 : Number(scenario.delayMs || 0);
-  if (delay > 0) {
-    process.on("SIGTERM", () => {
-      log({ event: "killed" });
-      process.exit(143);
-    });
-    setTimeout(go, delay);
-  } else {
+  const hold = args[0] === "--version" ? undefined : scenario.holdUntil;
+  if (!hold) {
     go();
+    return;
   }
+  // Polling a file, not a delay: nothing here assumes how long anything takes.
+  const poll = setInterval(() => {
+    if (fs.existsSync(hold)) {
+      clearInterval(poll);
+      go();
+    }
+  }, 10);
 }
+
+// Before "start" is logged, so a test that has seen "start" knows a kill
+// from then on is recorded.
+process.on("SIGTERM", () => {
+  log({ event: "killed" });
+  process.exit(143);
+});
 
 log({ event: "start" });
 

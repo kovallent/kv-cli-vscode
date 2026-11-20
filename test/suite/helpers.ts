@@ -32,10 +32,19 @@ export async function api(): Promise<TestApi> {
   return testApi;
 }
 
+/** How long any wait in these tests may take before it fails. */
+export const WAIT_MS = 15_000;
+
+/**
+ * Wait until `probe` returns something other than undefined or false, and
+ * return it. Tests never sleep for a fixed time: they wait on a condition,
+ * and fail after `timeoutMs` saying what they waited for. `what` can be a
+ * function, to describe the state at the moment of failure.
+ */
 export async function waitFor<T>(
-  what: string,
+  what: string | (() => string),
   probe: () => T | undefined | false | Promise<T | undefined | false>,
-  timeoutMs = 15_000,
+  timeoutMs = WAIT_MS,
 ): Promise<T> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
@@ -44,22 +53,62 @@ export async function waitFor<T>(
       return v;
     }
     if (Date.now() > deadline) {
-      throw new Error(`timed out waiting for ${what}`);
+      const description = typeof what === "string" ? what : what();
+      throw new Error(`timed out after ${timeoutMs} ms waiting for ${description}`);
     }
-    await sleep(25);
+    // The poll interval, not a wait for anything to happen.
+    await new Promise((r) => setTimeout(r, 20));
   }
 }
 
-export function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
+/** No audit waiting, running or detecting kv-cli. */
+export async function idle(a: TestApi): Promise<void> {
+  await waitFor("the extension to go idle", () => a.controller.idle);
 }
 
-export async function idle(a: TestApi): Promise<void> {
-  // Twice, with a pause, so an audit scheduled by an event that is still on
-  // its way counts too.
-  await waitFor("the extension to go idle", () => a.controller.idle);
-  await sleep(100);
-  await waitFor("the extension to go idle", () => a.controller.idle);
+/** Wait until the status bar reads `expected`, showing what it read on failure. */
+export async function statusReads(a: TestApi, expected: string | undefined): Promise<void> {
+  await waitFor(
+    () => `the status bar to read ${JSON.stringify(expected)}; it reads ${JSON.stringify(a.statusBar.text)}`,
+    () => a.statusBar.text === expected,
+  );
+}
+
+/**
+ * Change a kovallent setting and return once the extension has reacted. The
+ * extension's configuration listener was registered at activation, before
+ * the one here, so when this one fires the extension has already scheduled
+ * its audits or started finding kv-cli again; callers then wait for idle.
+ * Setting a value it already has fires no event, so that returns at once.
+ */
+export async function setSetting(
+  key: "path" | "config",
+  value: string | undefined,
+  target: vscode.ConfigurationTarget,
+): Promise<void> {
+  const config = vscode.workspace.getConfiguration("kovallent");
+  const inspected = config.inspect<string>(key);
+  const current =
+    target === vscode.ConfigurationTarget.Global
+      ? inspected?.globalValue
+      : target === vscode.ConfigurationTarget.Workspace
+        ? inspected?.workspaceValue
+        : inspected?.workspaceFolderValue;
+  if (current === value) {
+    return;
+  }
+  let seen = false;
+  const sub = vscode.workspace.onDidChangeConfiguration((e) => {
+    if (e.affectsConfiguration(`kovallent.${key}`)) {
+      seen = true;
+    }
+  });
+  try {
+    await config.update(key, value, target);
+    await waitFor(`the change to kovallent.${key} to reach the extension`, () => seen);
+  } finally {
+    sub.dispose();
+  }
 }
 
 export async function show(rel: string): Promise<vscode.TextEditor> {
@@ -117,7 +166,12 @@ export function clearInvocations(): void {
   fs.rmSync(env("KV_FAKE_LOG"), { force: true });
 }
 
-export function setScenario(s: { version?: string; delayMs?: number; replay?: string }): void {
+/**
+ * Change how the fake kv-cli answers. `holdUntil` makes every audit wait
+ * until that file exists before it answers, so a test decides when a run
+ * finishes instead of racing a delay.
+ */
+export function setScenario(s: { version?: string; holdUntil?: string; replay?: string }): void {
   fs.writeFileSync(env("KV_FAKE_SCENARIO"), JSON.stringify(s));
 }
 

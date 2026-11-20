@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import { COPY_PIP_BUTTON, OPEN_INSTALL_BUTTON, PIP_INSTALL } from "../../../src/controller";
-import { api, idle, invocations, sleep, waitFor, wsUri } from "../helpers";
+import { api, idle, invocations, statusReads, waitFor, wsUri } from "../helpers";
 
 // Launched with no kv-cli on PATH and kovallent.path unset.
 suite("Missing kv-cli", () => {
@@ -11,9 +11,8 @@ suite("Missing kv-cli", () => {
 
     const doc = await vscode.workspace.openTextDocument(wsUri("deploy.py"));
     await vscode.window.showTextDocument(doc);
-    await doc.save();
     a.controller.schedule(doc.uri, 0);
-    await sleep(500);
+    // Idle once the scheduled audit has run and found no kv-cli.
     await idle(a);
 
     assert.deepStrictEqual(
@@ -29,7 +28,7 @@ suite("Missing kv-cli", () => {
     );
     assert.deepStrictEqual(invocations(), [], "the fake kv-cli (not on PATH) never ran");
     assert.deepStrictEqual(vscode.languages.getDiagnostics(doc.uri), []);
-    assert.strictEqual(a.statusBar.text, "$(warning) kv-cli: not found");
+    await statusReads(a, "$(warning) kv-cli: not found");
 
     await vscode.env.clipboard.writeText("");
     a.ui.recorded[0].answer(COPY_PIP_BUTTON);

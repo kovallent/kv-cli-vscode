@@ -10,6 +10,7 @@ import {
   skippedDiagnostic,
   type LineReader,
 } from "./diagnostics";
+import { Debouncer, type Clock } from "./debounce";
 import { classify } from "./files";
 import { parsePayload, PayloadError, type FileResult, type Payload, type SkippedFile } from "./payload";
 import { runKvCli, stripAnsi, type Run, type RunResult } from "./runner";
@@ -54,7 +55,7 @@ interface Target {
 export class Controller implements vscode.Disposable {
   readonly diagnostics = vscode.languages.createDiagnosticCollection("kv-cli");
   private readonly states = new Map<string, StoredState>();
-  private readonly pending = new Map<string, NodeJS.Timeout>();
+  private readonly pending: Debouncer;
   private readonly inflight = new Map<string, { run: Run; startedAt: number }>();
   private readonly changeEmitter = new vscode.EventEmitter<void>();
   readonly onDidChange = this.changeEmitter.event;
@@ -63,16 +64,18 @@ export class Controller implements vscode.Disposable {
   private busy = 0;
   readonly previews = new PreviewDocuments();
 
+  /** `clock` is for tests; production passes nothing and gets the real timers. */
   constructor(
     private readonly ui: Ui,
     private readonly output: vscode.OutputChannel,
     private readonly globalState: vscode.Memento,
-  ) {}
+    clock?: Clock,
+  ) {
+    this.pending = new Debouncer(clock);
+  }
 
   dispose(): void {
-    for (const t of this.pending.values()) {
-      clearTimeout(t);
-    }
+    this.pending.cancelAll();
     for (const r of this.inflight.values()) {
       r.run.cancel();
     }
@@ -181,10 +184,7 @@ export class Controller implements vscode.Disposable {
 
   /** Forget every result and find kv-cli again, e.g. after kovallent.path changed. */
   async redetect(): Promise<void> {
-    for (const t of this.pending.values()) {
-      clearTimeout(t);
-    }
-    this.pending.clear();
+    this.pending.cancelAll();
     for (const r of this.inflight.values()) {
       r.run.cancel();
     }
@@ -217,18 +217,12 @@ export class Controller implements vscode.Disposable {
     if (uri.scheme !== "file" || !classify(uri.fsPath)) {
       return;
     }
-    const key = uri.toString();
-    const waiting = this.pending.get(key);
-    if (waiting) {
-      clearTimeout(waiting);
-    }
-    this.pending.set(
-      key,
-      setTimeout(() => {
-        this.pending.delete(key);
-        void this.auditFile(uri);
-      }, delayMs),
-    );
+    this.pending.schedule(uri.toString(), delayMs, () => void this.auditFile(uri));
+  }
+
+  /** When the audit waiting for `uri` starts, on the debouncer's clock. For tests. */
+  auditDue(uri: vscode.Uri): number | undefined {
+    return this.pending.due(uri.toString());
   }
 
   async auditFile(uri: vscode.Uri): Promise<void> {
@@ -330,11 +324,7 @@ export class Controller implements vscode.Disposable {
 
   forget(uri: vscode.Uri): void {
     const key = uri.toString();
-    const waiting = this.pending.get(key);
-    if (waiting) {
-      clearTimeout(waiting);
-      this.pending.delete(key);
-    }
+    this.pending.cancel(key);
     this.inflight.get(key)?.run.cancel();
     this.inflight.delete(key);
     this.states.delete(key);

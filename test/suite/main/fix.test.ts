@@ -88,6 +88,8 @@ suite("Fix", () => {
     a.ui.responder = (p) => (p.modal ? undefined : "pending");
     try {
       await vscode.commands.executeCommand("kovallent.fixFile", editor.document.uri);
+      // The open event can arrive after the command resolves: keep listening.
+      await waitFor("the dry run's preview to have opened", () => previews.length > 0);
     } finally {
       sub.dispose();
     }
@@ -95,7 +97,6 @@ suite("Fix", () => {
     assert.deepStrictEqual(fixCalls(), [["fix", "--dry-run", "--", "deploy.py"]], "no write after a cancel");
     assert.ok(fs.readFileSync(wsPath("deploy.py")).equals(before), "deploy.py is untouched");
     assert.strictEqual(editor.document.isDirty, false);
-
     assert.deepStrictEqual(previews, [recordedText("fix-dry-run.stdout").trimEnd() + "\n"], "the dry run's output, as printed");
     const confirm = a.ui.recorded.find((p) => p.modal);
     assert.ok(confirm);

@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { Controller, PREVIEW_SCHEME, SAVE_DEBOUNCE_MS } from "./controller";
+import { SwitchableClock } from "./debounce";
 import { diagnosticCode, FIXABLE_CODES, SOURCE } from "./diagnostics";
 import { SHOW_FILE_PROBLEMS, SHOW_SETUP_PROBLEM, StatusBar } from "./statusBar";
 import { Ui } from "./ui";
@@ -11,13 +12,17 @@ export interface TestApi {
   controller: Controller;
   statusBar: StatusBar;
   ui: Ui;
+  /** The debouncer's clock: real timers until a test swaps in a fake. */
+  clock: SwitchableClock;
 }
 
 export function activate(context: vscode.ExtensionContext): TestApi | undefined {
   const testMode = context.extensionMode === vscode.ExtensionMode.Test;
   const ui = new Ui(testMode);
   const output = vscode.window.createOutputChannel("Kovallent");
-  const controller = new Controller(ui, output, context.globalState);
+  // Production passes no clock, so the debouncer uses the real timers.
+  const clock = testMode ? new SwitchableClock() : undefined;
+  const controller = new Controller(ui, output, context.globalState, clock);
   const statusBar = new StatusBar(controller);
 
   context.subscriptions.push(
@@ -63,7 +68,7 @@ export function activate(context: vscode.ExtensionContext): TestApi | undefined 
 
   void controller.detect().then(() => controller.auditOpenDocuments());
 
-  return testMode ? { controller, statusBar, ui } : undefined;
+  return testMode && clock ? { controller, statusBar, ui, clock } : undefined;
 }
 
 export function deactivate(): void {}
