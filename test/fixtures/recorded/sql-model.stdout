@@ -1,0 +1,80 @@
+{
+  "run": {
+    "schema_version": 1,
+    "tool_version": "0.14.0",
+    "repo": null,
+    "commit": null,
+    "branch": null,
+    "timestamp": "2026-11-20T09:11:34Z",
+    "identity_source": {
+      "repo": null,
+      "commit": null,
+      "branch": null
+    },
+    "strict": false,
+    "contract_sha256": "6ab80ee298105515",
+    "contract_path": "dbt/models/../../.kovallent.yaml",
+    "contract_expected": null,
+    "contract_drift": false,
+    "files_scanned": 1,
+    "errors": 0,
+    "warnings": 2,
+    "skipped": [],
+    "frameworks_detected": {},
+    "scope": {
+      "functions_total": 0,
+      "functions_in_scope": 0,
+      "functions_report_only": 0,
+      "functions_exempt_framework": 0,
+      "functions_exempt_user": 0,
+      "functions_out_of_scope": 0
+    },
+    "files": [
+      {
+        "path": "dbt/models/session.sql",
+        "status": "warn",
+        "errors": 0,
+        "warnings": 2,
+        "analysis": "sql",
+        "scope": {
+          "functions_total": 0,
+          "functions_in_scope": 0,
+          "functions_report_only": 0,
+          "functions_exempt_framework": 0,
+          "functions_exempt_user": 0,
+          "functions_out_of_scope": 0
+        }
+      }
+    ]
+  },
+  "findings": [
+    {
+      "fingerprint": "7c59d2f6fa04ecd9",
+      "path": "dbt/models/session.sql",
+      "line": 1,
+      "code": "KV003",
+      "severity": "warning",
+      "symbol": "session",
+      "subject": "analytics_prod_wh",
+      "message": "`USE WAREHOUSE ANALYTICS_PROD_WH` pins the warehouse",
+      "detail": "set the warehouse on the dbt target in profiles.yml",
+      "kind": "hardcoded_infrastructure",
+      "detector": "use_warehouse",
+      "key": "ANALYTICS_PROD_WH"
+    },
+    {
+      "fingerprint": "75981d34de6018a4",
+      "path": "dbt/models/session.sql",
+      "line": 2,
+      "code": "KV003",
+      "severity": "warning",
+      "symbol": "session",
+      "subject": "analytics_prod",
+      "message": "`USE DATABASE ANALYTICS_PROD` pins the database",
+      "detail": "set the database on the dbt target in profiles.yml",
+      "kind": "hardcoded_infrastructure",
+      "detector": "use_database",
+      "key": "ANALYTICS_PROD"
+    }
+  ]
+}

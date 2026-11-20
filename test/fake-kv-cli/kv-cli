@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+// A stand-in for kv-cli in the extension's tests. It replays what real
+// kv-cli 0.14.0 printed on samples/ (test/fixtures/recorded, made by
+// scripts/record-fixtures.mjs) and never analyses anything itself.
+//
+// Environment:
+//   KV_FAKE_LOG       append one JSON line per invocation here
+//   KV_FAKE_SCENARIO  JSON file read on every call, so a test can change the
+//                     behaviour while VS Code runs:
+//                     { "version": "0.13.0", "delayMs": 800,
+//                       "replay": "contract-drift" }
+//                     `replay` answers every audit with that recording.
+"use strict";
+
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+
+const fixtures = path.join(__dirname, "..", "fixtures", "recorded");
+const manifest = JSON.parse(fs.readFileSync(path.join(fixtures, "manifest.json"), "utf8"));
+const args = process.argv.slice(2);
+const cwd = process.cwd();
+
+let scenario = {};
+if (process.env.KV_FAKE_SCENARIO && fs.existsSync(process.env.KV_FAKE_SCENARIO)) {
+  scenario = JSON.parse(fs.readFileSync(process.env.KV_FAKE_SCENARIO, "utf8"));
+}
+
+// The extension passes absolute paths for --config; recordings use paths
+// relative to the workspace, which is the working directory.
+const normalized = args.map((a) => {
+  if (path.isAbsolute(a) && a.startsWith(cwd + path.sep)) {
+    return path.relative(cwd, a).split(path.sep).join("/");
+  }
+  return a.split(path.sep).join("/");
+});
+
+const target = args.length > 0 ? path.resolve(cwd, args[args.length - 1]) : undefined;
+function sha(file) {
+  try {
+    return crypto.createHash("sha1").update(fs.readFileSync(file)).digest("hex");
+  } catch {
+    return null;
+  }
+}
+
+function log(extra) {
+  if (process.env.KV_FAKE_LOG) {
+    const entry = { args: normalized, cwd, pid: process.pid, time: Date.now(), targetSha: target ? sha(target) : null, ...extra };
+    fs.appendFileSync(process.env.KV_FAKE_LOG, JSON.stringify(entry) + "\n");
+  }
+}
+
+function finish(stdout, stderr, code, writes) {
+  const go = () => {
+    for (const [rel, fixture] of Object.entries(writes || {})) {
+      fs.copyFileSync(path.join(fixtures, fixture), path.resolve(cwd, rel));
+    }
+    process.stdout.write(stdout);
+    process.stderr.write(stderr);
+    log({ event: "exit", code });
+    process.exitCode = code;
+  };
+  const delay = args[0] === "--version" ? 0 : Number(scenario.delayMs || 0);
+  if (delay > 0) {
+    process.on("SIGTERM", () => {
+      log({ event: "killed" });
+      process.exit(143);
+    });
+    setTimeout(go, delay);
+  } else {
+    go();
+  }
+}
+
+log({ event: "start" });
+
+if (args[0] === "--version") {
+  const version = scenario.version ? `kv-cli ${scenario.version}` : manifest.recordedWith;
+  finish(version + "\n", "", 0);
+} else {
+  const key = JSON.stringify(normalized);
+  const allButFile = JSON.stringify(normalized.slice(0, -1));
+  // A tool error (exit 2) comes before kv-cli reads any file, so the
+  // recording stands for every file named with the same options.
+  const c =
+    (scenario.replay && args[0] === "audit" ? manifest.cases.find((x) => x.name === scenario.replay) : undefined) ??
+    manifest.cases.find((x) => JSON.stringify(x.args) === key) ??
+    manifest.cases.find((x) => x.exitCode === 2 && JSON.stringify(x.args.slice(0, -1)) === allButFile);
+  if (!c) {
+    finish("", `fake kv-cli: no recording for: ${normalized.join(" ")}\n`, 99);
+  } else {
+    const stdout = fs.readFileSync(path.join(fixtures, c.stdout), "utf8");
+    finish(stdout, c.stderr, c.exitCode, c.writes);
+  }
+}

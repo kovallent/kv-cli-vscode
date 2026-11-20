@@ -1,0 +1,9 @@
+# Pipeline settings. Credentials come from the environment, so kv-cli's
+# credential scan finds nothing here.
+pipeline:
+  name: nightly_orders
+  schedule: "0 3 * * *"
+  source:
+    connection: warehouse
+    password: ${ORDERS_DB_PASSWORD}
+  retries: 3

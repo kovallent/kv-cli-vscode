@@ -1,0 +1,191 @@
+{
+  "recordedWith": "kv-cli 0.14.0",
+  "cases": [
+    {
+      "name": "fail",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--",
+        "deploy.py"
+      ],
+      "exitCode": 1,
+      "stdout": "fail.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "pass",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--",
+        "compliant.py"
+      ],
+      "exitCode": 0,
+      "stdout": "pass.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "nothing-enforced",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--",
+        "dbt_model.py"
+      ],
+      "exitCode": 0,
+      "stdout": "nothing-enforced.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "warnings",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--",
+        "orders_job.py"
+      ],
+      "exitCode": 0,
+      "stdout": "warnings.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "syntax-error",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--",
+        "broken.py"
+      ],
+      "exitCode": 0,
+      "stdout": "syntax-error.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "sql-not-parsed",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--",
+        "dbt/models/unparsed.sql"
+      ],
+      "exitCode": 0,
+      "stdout": "sql-not-parsed.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "sql-model",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--",
+        "dbt/models/session.sql"
+      ],
+      "exitCode": 0,
+      "stdout": "sql-model.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "credentials-only-yaml",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--",
+        "config/pipeline.yml"
+      ],
+      "exitCode": 0,
+      "stdout": "credentials-only-yaml.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "workspace",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--",
+        "."
+      ],
+      "exitCode": 1,
+      "stdout": "workspace.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "vscode-settings",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--",
+        ".vscode/settings.json"
+      ],
+      "exitCode": 0,
+      "stdout": "vscode-settings.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "tool-error",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--config",
+        "missing.yaml",
+        "--",
+        "deploy.py"
+      ],
+      "exitCode": 2,
+      "stdout": "tool-error.stdout",
+      "stderr": "error: contract not found: missing.yaml\n"
+    },
+    {
+      "name": "contract-drift",
+      "args": [
+        "audit",
+        "--format",
+        "json",
+        "--expect-contract",
+        "0000000000000000",
+        "--",
+        "deploy.py"
+      ],
+      "exitCode": 3,
+      "stdout": "contract-drift.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "fix-dry-run",
+      "args": [
+        "fix",
+        "--dry-run",
+        "--",
+        "deploy.py"
+      ],
+      "exitCode": 0,
+      "stdout": "fix-dry-run.stdout",
+      "stderr": ""
+    },
+    {
+      "name": "fix",
+      "args": [
+        "fix",
+        "--",
+        "deploy.py"
+      ],
+      "exitCode": 0,
+      "stdout": "fix.stdout",
+      "stderr": "",
+      "writes": {
+        "deploy.py": "deploy.fixed.py"
+      }
+    }
+  ]
+}

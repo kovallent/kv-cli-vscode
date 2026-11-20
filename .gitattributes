@@ -1,0 +1,3 @@
+# The fake kv-cli is a script with a shebang, and the recorded payloads hold
+# line numbers for samples/: keep both byte-for-byte on every platform.
+* text=auto eol=lf

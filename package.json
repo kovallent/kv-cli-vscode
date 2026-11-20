@@ -1,0 +1,126 @@
+{
+  "name": "kv-cli-vscode",
+  "displayName": "Kovallent kv-cli",
+  "description": "Shows kv-cli findings (missing contract parameters, hardcoded credentials, pinned infrastructure, naming rules) as editor diagnostics. Runs the kv-cli you installed; never downloads one. No network, no telemetry.",
+  "version": "0.1.0",
+  "publisher": "kovallent",
+  "license": "MIT",
+  "author": "Kovallent",
+  "homepage": "https://github.com/kovallent/kv-cli-vscode#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kovallent/kv-cli-vscode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kovallent/kv-cli-vscode/issues"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "keywords": [
+    "kv-cli",
+    "kovallent",
+    "dbt",
+    "airflow",
+    "databricks",
+    "secrets",
+    "data pipelines"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:python",
+    "onLanguage:yaml",
+    "onLanguage:json",
+    "onLanguage:jsonc",
+    "onLanguage:toml",
+    "onLanguage:ini",
+    "onLanguage:properties",
+    "onLanguage:dotenv",
+    "onLanguage:sql",
+    "onNotebook:jupyter-notebook",
+    "workspaceContains:**/.kovallent.yaml"
+  ],
+  "capabilities": {
+    "virtualWorkspaces": false,
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In an untrusted workspace, a workspace-level kovallent.path is ignored, because a cloned repository could point it at any program. kv-cli from your user settings or PATH still runs: it only reads files.",
+      "restrictedConfigurations": [
+        "kovallent.path"
+      ]
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "kovallent.auditWorkspace",
+        "title": "Audit workspace",
+        "category": "Kovallent"
+      },
+      {
+        "command": "kovallent.fixFile",
+        "title": "Apply kv-cli fix to this file",
+        "category": "Kovallent"
+      },
+      {
+        "command": "kovallent.showFileProblems",
+        "title": "Show this file's kv-cli problems",
+        "category": "Kovallent"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "kovallent.fixFile",
+          "when": "false"
+        },
+        {
+          "command": "kovallent.showFileProblems",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Kovallent",
+      "properties": {
+        "kovallent.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "Path to the `kv-cli` executable. Empty means `kv-cli` on `PATH`. A relative path resolves against the first workspace folder. The extension never downloads, bundles or installs kv-cli. In an untrusted workspace only the user-level value is used."
+        },
+        "kovallent.config": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "markdownDescription": "Contract file passed to kv-cli as `--config`. Empty (the default) passes nothing, so kv-cli finds the nearest `.kovallent.yaml` itself. A relative path resolves against the workspace folder."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p . --noEmit",
+    "compile-tests": "tsc -p test/tsconfig.json",
+    "pretest": "npm run build && npm run compile-tests",
+    "test": "node out/test/runTest.js",
+    "record-fixtures": "node scripts/record-fixtures.mjs",
+    "vscode:prepublish": "npm run build -- --production",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/mocha": "10.0.10",
+    "@types/node": "20.19.25",
+    "@types/vscode": "1.90.0",
+    "@vscode/test-electron": "2.5.2",
+    "@vscode/vsce": "3.7.1",
+    "esbuild": "0.25.12",
+    "mocha": "11.7.5",
+    "ovsx": "0.10.7",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,5 @@
+# A minimal dbt project, so kv-cli 0.14.0 reads models/*.sql as dbt models.
+name: kv_cli_vscode_samples
+version: "1.0.0"
+profile: kv_cli_vscode_samples
+model-paths: ["models"]

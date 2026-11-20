@@ -1,0 +1,27 @@
+kv-cli fix  (dry run)
+
+deploy.py
+  + added `target_environment` to deploy_service()
+  + added `dry_run` to deploy_service()
+  + added `target_environment` to orchestrate()
+  + added `dry_run` to orchestrate()
+  + added `target_environment` to run_migration()
+  + added `dry_run` to run_migration()
+  + added `target_environment` to orchestrate_batch()
+  + added `dry_run` to orchestrate_batch()
+  + added `target_environment` to run_upload()
+  + added `dry_run` to run_upload()
+  + added `target_environment` to run_with_default()
+  + added `dry_run` to run_with_default()
+  ~ `DB_PASSWORD` now reads os.environ["DB_PASSWORD"]
+  ~ `AWS_ACCESS_KEY` now reads os.environ["AWS_ACCESS_KEY"]
+  ~ `api_token` now reads os.environ["API_TOKEN"]
+  ~ `DB_SECRET` now reads os.environ["DB_SECRET"]
+  ~ `upload_token` now reads os.environ["UPLOAD_TOKEN"]
+  ~ `api_key` now reads os.environ["API_KEY"]
+
+  manual: deploy.py:90 `password` has a hardcoded default; move the lookup into the body so it is read per call, not at import time
+
+DRY RUN 18 changes across 1 file (nothing written)
+
+  rotate: 6 credentials were in source: treat them as exposed - rotate, then set the new value in the environment; removing them from the file does not remove them from git history
