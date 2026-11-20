@@ -10,14 +10,18 @@ import {
   idle,
   recordedPayload,
   setScenario,
+  setSetting,
   starts,
+  statusReads,
   waitFor,
 } from "../helpers";
+
+const { Workspace } = vscode.ConfigurationTarget;
 
 suite("Exit codes", () => {
   teardown(async () => {
     const a = await api();
-    await vscode.workspace.getConfiguration("kovallent").update("config", undefined, vscode.ConfigurationTarget.Workspace);
+    await setSetting("config", undefined, Workspace);
     await idle(a);
     dismissAll(a);
   });
@@ -32,7 +36,9 @@ suite("Exit codes", () => {
 
     // A contract that does not exist: real kv-cli 0.14.0 exits 2 with
     // "error: contract not found: missing.yaml" (test/fixtures/recorded).
-    await vscode.workspace.getConfiguration("kovallent").update("config", "missing.yaml", vscode.ConfigurationTarget.Workspace);
+    // Once the change reaches the extension, every open file is due for an
+    // audit; idle means all of them have answered.
+    await setSetting("config", "missing.yaml", Workspace);
     await waitFor("deploy.py to show the tool error", () => a.controller.stateOf(uri)?.kind === "error");
     await idle(a);
 
@@ -49,10 +55,11 @@ suite("Exit codes", () => {
     const errors = a.ui.recorded.filter((p) => p.kind === "error");
     assert.strictEqual(errors.length, 1, `a single error notification, however many files failed: ${JSON.stringify(errors.map((e) => e.text))}`);
     assert.strictEqual(errors[0].text, "kv-cli: error: contract not found: missing.yaml");
-    assert.strictEqual(a.statusBar.text, "$(error) kv-cli: could not audit");
+    await statusReads(a, "$(error) kv-cli: could not audit");
 
-    await vscode.workspace.getConfiguration("kovallent").update("config", undefined, vscode.ConfigurationTarget.Workspace);
+    await setSetting("config", undefined, Workspace);
     await waitFor("deploy.py's findings to come back", () => vscode.languages.getDiagnostics(uri).length === 19);
+    await idle(a);
   });
 
   test("exit 3 is a tool error even though a payload came with it", async () => {
