@@ -1,10 +1,12 @@
-# Publishes the extension when a v* tag is pushed: tests it, packages one
-# .vsix, and publishes that same file to the VS Code Marketplace and to Open
-# VSX (which Cursor uses).
+# Runs when a v* tag is pushed. Tests the extension, packages the .vsix once,
+# and ships that one file three ways: as a workflow artifact, as an asset on
+# the tag's GitHub Release, and to Open VSX (which Cursor uses).
 #
-# Needs two repository secrets, added by a maintainer:
-#   VSCE_PAT  a Visual Studio Marketplace personal access token for the
-#             `kovallent` publisher (Azure DevOps, scope Marketplace > Manage)
+# The VS Code Marketplace is published by hand for now: a maintainer uploads
+# the Release's .vsix at https://marketplace.visualstudio.com/manage. See
+# "Releasing" in README.md.
+#
+# Needs one repository secret, added by a maintainer:
 #   OVSX_PAT  an Open VSX access token with publish rights on the
 #             `kovallent` namespace
 name: release
@@ -17,10 +19,14 @@ permissions:
   contents: read
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub Release and attach the .vsix
     env:
       TAG: ${{ github.ref_name }}
+      VSIX: kv-cli-vscode-${{ github.ref_name }}.vsix
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,35 +35,51 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
-
       - name: Check the tag matches package.json
         run: |
           version="$(node -p "require('./package.json').version")"
-          if [ "v$version" != "$TAG" ]; then
-            echo "tag $TAG does not match package.json version $version" >&2
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::tag $TAG does not match package.json version $version (expected tag v$version)"
             exit 1
           fi
+
+      - run: npm ci
 
       - run: npm run typecheck
 
       - name: Test
         run: xvfb-run -a npm test
 
-      - name: Package
-        run: npx vsce package --no-dependencies --out "kv-cli-vscode-$TAG.vsix"
+      - name: Package the .vsix (once)
+        run: npx @vscode/vsce package --no-dependencies --out "$VSIX"
+
+      # Every later step ships this one file. A re-run of the job packages
+      # again, and a new .vsix is not byte-identical, so when the Release
+      # already holds one, that file replaces this run's build: the artifact,
+      # the Release and Open VSX always carry the same bytes.
+      - name: Attach the .vsix to the GitHub Release
+        run: |
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" \
+              --notes "See [CHANGELOG.md](https://github.com/$GITHUB_REPOSITORY/blob/$TAG/CHANGELOG.md)."
+          fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fxq "$VSIX"; then
+            echo "The Release already holds $VSIX: shipping that file, not this run's build."
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$VSIX" --clobber
+          else
+            gh release upload "$TAG" "$VSIX" --repo "$GITHUB_REPOSITORY"
+          fi
+          sha256sum "$VSIX"
 
       - uses: actions/upload-artifact@v4
         with:
           name: kv-cli-vscode-${{ github.ref_name }}
-          path: kv-cli-vscode-${{ github.ref_name }}.vsix
+          path: ${{ env.VSIX }}
+          if-no-files-found: error
 
-      - name: Publish to the VS Code Marketplace
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --no-dependencies --packagePath "kv-cli-vscode-$TAG.vsix"
-
-      - name: Publish to Open VSX
+      # --skip-duplicate: on a re-run after a successful publish, the version
+      # is already there, and the file above is the one that was published.
+      - name: Publish the same .vsix to Open VSX
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: npx ovsx publish "kv-cli-vscode-$TAG.vsix"
+        run: npx ovsx publish "$VSIX" --skip-duplicate
