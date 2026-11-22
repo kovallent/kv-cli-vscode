@@ -4,6 +4,10 @@ This extension is versioned on its own, independent of kv-cli. It needs
 kv-cli **0.9.0 or later** installed; with kv-cli older than 0.14.0, dbt SQL
 models are not checked.
 
+## [0.1.1]
+
+- Added the extension icon and a dark gallery banner.
+
 ## [0.1.0]
 
 First release.
