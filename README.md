@@ -142,7 +142,8 @@ KV_CLI=/path/to/kv-cli-0.14.0 npm run record-fixtures
    extension and packages the `.vsix` once. It uploads that file as a workflow
    artifact and as an asset on the tag's GitHub Release (creating the release
    if needed), then publishes the same file to Open VSX (which Cursor uses). It
-   needs one repository secret, `OVSX_PAT`.
+   needs no secret: it publishes through an Open VSX trusted publisher
+   registered for this repository and `release.yml`.
 3. Publish to the VS Code Marketplace by hand. The workflow doesn't publish
    there for now: Azure DevOps global personal access tokens retire on
    2027-01-27, and Entra ID publishing comes later.

@@ -126,7 +126,7 @@
     "@vscode/vsce": "3.7.1",
     "esbuild": "0.25.12",
     "mocha": "11.7.5",
-    "ovsx": "0.10.7",
+    "ovsx": "1.4.0",
     "typescript": "5.9.3"
   }
 }

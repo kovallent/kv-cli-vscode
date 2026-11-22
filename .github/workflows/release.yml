@@ -6,9 +6,10 @@
 # the Release's .vsix at https://marketplace.visualstudio.com/manage. See
 # "Releasing" in README.md.
 #
-# Needs one repository secret, added by a maintainer:
-#   OVSX_PAT  an Open VSX access token with publish rights on the
-#             `kovallent` namespace
+# Needs no secret: Open VSX publishing uses an Open VSX trusted publisher
+# registered for this repository and this workflow file (release.yml). The
+# job's `id-token: write` lets ovsx exchange GitHub's OIDC token for a
+# short-lived publishing token.
 name: release
 
 on:
@@ -23,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the GitHub Release and attach the .vsix
+      id-token: write # Open VSX trusted publishing
     env:
       TAG: ${{ github.ref_name }}
       VSIX: kv-cli-vscode-${{ github.ref_name }}.vsix
@@ -80,6 +82,4 @@ jobs:
       # --skip-duplicate: on a re-run after a successful publish, the version
       # is already there, and the file above is the one that was published.
       - name: Publish the same .vsix to Open VSX
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: npx ovsx publish "$VSIX" --skip-duplicate
+        run: npx ovsx publish "$VSIX" --trusted-publishing --skip-duplicate
