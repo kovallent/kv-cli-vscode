@@ -134,25 +134,6 @@ runs on [`samples/`](samples/README.md), committed under
 KV_CLI=/path/to/kv-cli-0.14.0 npm run record-fixtures
 ```
 
-## Releasing
-
-1. Set `version` in `package.json` and add the release to `CHANGELOG.md`.
-2. Push the tag `v<version>`, for example `v0.1.0`. The release workflow fails
-   unless the tag is `v` followed by `package.json`'s `version`. It tests the
-   extension and packages the `.vsix` once. It uploads that file as a workflow
-   artifact and as an asset on the tag's GitHub Release (creating the release
-   if needed), then publishes the same file to Open VSX (which Cursor uses). It
-   needs no secret: it publishes through an Open VSX trusted publisher
-   registered for this repository and `release.yml`.
-3. Publish to the VS Code Marketplace by hand. The workflow doesn't publish
-   there for now: Azure DevOps global personal access tokens retire on
-   2027-01-27, and Entra ID publishing comes later.
-   1. Download `kv-cli-vscode-v<version>.vsix` from the tag's GitHub Release.
-      It is the same file Open VSX received; don't package a new one.
-   2. Upload it at <https://marketplace.visualstudio.com/manage>, under the
-      `kovallent` publisher. The first release is a new extension; every
-      release after that is an update to it.
-
 ## License
 
 [MIT](LICENSE)
