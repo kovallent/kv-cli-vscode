@@ -2,7 +2,7 @@
   "name": "kv-cli-vscode",
   "displayName": "Kovallent kv-cli",
   "description": "Shows kv-cli findings (missing contract parameters, hardcoded credentials, pinned infrastructure, naming rules) as editor diagnostics. Runs the kv-cli you installed; never downloads one. No network, no telemetry.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "kovallent",
   "license": "MIT",
   "author": "Kovallent",
