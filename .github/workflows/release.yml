@@ -3,8 +3,7 @@
 # the tag's GitHub Release, and to Open VSX (which Cursor uses).
 #
 # The VS Code Marketplace is published by hand for now: a maintainer uploads
-# the Release's .vsix at https://marketplace.visualstudio.com/manage. See
-# "Releasing" in README.md.
+# the Release's .vsix at https://marketplace.visualstudio.com/manage.
 #
 # Needs no secret: Open VSX publishing uses an Open VSX trusted publisher
 # registered for this repository and this workflow file (release.yml). The
