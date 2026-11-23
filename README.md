@@ -15,8 +15,7 @@ collects nothing. kv-cli itself makes no network calls either. The only
 links it opens are the ones you click: a rule's documentation on GitHub, or
 kv-cli's install guide.
 
-> **Screenshot placeholder:** diagnostics in `samples/deploy.py`, the status
-> bar item and the `kv-cli fix` preview.
+![kv-cli in VS Code: diagnostics on samples/deploy.py, a finding's hover, the Problems panel, and Apply kv-cli fix with its dry-run preview and the diff it made](media/demo.gif)
 
 ## Install kv-cli first
 
