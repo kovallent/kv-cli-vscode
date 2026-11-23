@@ -4,6 +4,17 @@ This extension is versioned on its own, independent of kv-cli. It needs
 kv-cli **0.9.0 or later** installed; with kv-cli older than 0.14.0, dbt SQL
 models are not checked.
 
+## [0.1.3]
+
+- The README opens with a captioned walkthrough of the extension.
+
+## [0.1.2]
+
+No change to the extension itself.
+
+- Releases publish to Open VSX through trusted publishing.
+- The README no longer has a Releasing section.
+
 ## [0.1.1]
 
 - Added the extension icon and a dark gallery banner.
