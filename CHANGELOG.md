@@ -4,6 +4,12 @@ This extension is versioned on its own, independent of kv-cli. It needs
 kv-cli **0.9.0 or later** installed; with kv-cli older than 0.14.0, dbt SQL
 models are not checked.
 
+## [0.1.4]
+
+No change to the extension itself.
+
+- Releases publish to the VS Code Marketplace through trusted publishing.
+
 ## [0.1.3]
 
 - The README opens with a captioned walkthrough of the extension.
