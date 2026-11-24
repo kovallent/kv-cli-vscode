@@ -56,15 +56,17 @@ jobs:
       # First, so a Marketplace failure stops the release before anything is
       # published. --oidc needs vsce 4.x (the repo's own vsce 3.x packages).
       # No VSCE_PAT may be set: vsce refuses --oidc together with a PAT.
+      # --skip-duplicate: a re-run after a successful publish skips this step
+      # and finishes the release; any other Marketplace error still fails.
       - name: Publish the .vsix to the VS Code Marketplace
-        run: npx @vscode/vsce@4.1.1 publish --oidc --packagePath "$VSIX"
+        run: npx @vscode/vsce@4.1.1 publish --oidc --packagePath "$VSIX" --skip-duplicate
 
       # Every later step ships this one file. A re-run of the job packages
       # again, and a new .vsix is not byte-identical, so when the Release
       # already holds one, that file replaces this run's build: the artifact,
-      # the Release and Open VSX always carry the same bytes. (A re-run after
-      # a successful Marketplace publish stops at the step above, which fails
-      # on a version the Marketplace already has.)
+      # the Release and Open VSX always carry the same bytes. The Marketplace
+      # has them too, except when a run published there and failed before
+      # this step: its re-run attaches a fresh build of the same version.
       - name: Attach the .vsix to the GitHub Release
         run: |
           if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
